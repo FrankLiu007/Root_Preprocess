@@ -7,16 +7,12 @@ from decimal import Decimal, getcontext
 getcontext().prec = 10
 getcontext().rounding = 'ROUND_HALF_UP'
 
-#from tkinter import Tk
 import numpy as np
-
 import cv2
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import  QMainWindow, QFileDialog,  QMessageBox,  QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtGui import QPixmap,   QPainter,  QColor, QCursor, QImage
 from PyQt5.QtCore import Qt,QSize
-
-from PIL import Image
 
 from Root_Preprocess import Ui_MainWindow
 
@@ -228,12 +224,28 @@ class UiMain(QMainWindow, Ui_MainWindow):
         qimage=qpixmap.toImage()
         return self.qimage2cv(qimage)
 
+    def get_export_image_path(self,path):
+
+        dir0, fname = os.path.split(path)
+        name, ext=os.path.splitext(fname)
+        return os.path.join(dir0, 'export',name+'.png')
+    
     def export_img(self):
         path=self.image_files[self.current_index]
-        dir1, fname=os.path.split(path)
-        name, ext=os.path.splitext(fname)
-        new_path=os.path.join(dir1, "export_"+name+'.png')
-        self.graphicsView_2.base_pixmap_item.pixmap().save(new_path)
+        #name, ext=os.path.splitext(path)
+
+        dir0, fname = os.path.split(path)
+        #create export folder if not exists
+        if not os.path.exists(os.path.join(dir0, 'export')):
+            os.makedirs(os.path.join(dir0, 'export'))
+
+        new_path=self.get_export_image_path(path)
+
+        if self.graphicsView_2.mask_pixmap_item.scene() is not None:
+            self.graphicsView_2.mask_pixmap_item.pixmap().save(new_path)
+            QMessageBox.information(self, 'Info', 'Exported to '+new_path)
+        else:
+            QMessageBox.information(self, 'Info', 'No mask to export')
 
     def previous_image(self):
         if not self.current_index:
@@ -352,6 +364,17 @@ class UiMain(QMainWindow, Ui_MainWindow):
 
         self.graphicsView.scene().clear()
         self.update_image_viewer(self.graphicsView, self.original_pixmap, False)
+
+
+        #self.graphicsView_2.scene().clear()
+        self.update_image_viewer(self.graphicsView_2, self.original_pixmap, False)
+
+        mask_path=self.get_export_image_path(file_path)
+        # if mask exists, then update it
+        if os.path.exists(mask_path):
+            self.graphicsView_2.mask_pixmap_item = QGraphicsPixmapItem(QPixmap(mask_path))
+            if self.graphicsView_2.mask_pixmap_item.scene() is None:
+                self.graphicsView_2.scene().addItem(self.graphicsView_2.mask_pixmap_item)
 
 
     def open_image(self):
